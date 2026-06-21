@@ -16,6 +16,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // libadb-android + sun-security-android worden via JitPack gepubliceerd (beslispunt 2, herzien).
+        maven { setUrl("https://jitpack.io") }
     }
 }
 

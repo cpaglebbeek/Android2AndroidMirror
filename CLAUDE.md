@@ -5,8 +5,9 @@ Onderdeel van ecosysteem **Meta_Auto**. PUBLIC, AGPL-3.0.
 
 ## Architectuur
 Zie [ARCHITECTURE.md](ARCHITECTURE.md) — de 8 Fase-1-beslispunten zijn daar verantwoord.
-Kort: cartablet = dunne client (dadb + MediaCodec-decode + scrcpy control-protocol); de
-officiële scrcpy-server.jar draait onder shell-UID op de bron via wireless ADB.
+Kort: cartablet = dunne client (libadb-android + MediaCodec-decode + scrcpy control-protocol);
+de officiële scrcpy-server.jar draait onder shell-UID op de bron via wireless ADB.
+NB: beslispunt 2 is herzien van dadb → libadb-android (dadb kan niet draadloos pairen, BUGLIST B1).
 
 ## Stack
 Kotlin 2.0.21 · Compose BOM 2024.12.01 · AGP 8.7.3 · Gradle 8.11.1 · Java 21 ·
