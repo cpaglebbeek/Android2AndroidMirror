@@ -1,0 +1,22 @@
+# Android / Gradle
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+app/build/
+*.apk
+*.ap_
+*.aab
+
+# Third-party server jar (Apache-2.0) — fetch via tools/fetch-scrcpy-server.sh
+app/src/main/assets/scrcpy-server/scrcpy-server.jar
+
+# Keystores / secrets
+*.jks
+*.keystore
+keystore.properties

@@ -1,0 +1,29 @@
+Android2AndroidMirror
+Copyright (C) 2026 Christian Paglebbeek (cpaglebbeek)
+
+This product is licensed under the GNU Affero General Public License v3.0
+(see LICENSE).
+
+================================================================================
+THIRD-PARTY COMPONENTS
+================================================================================
+
+This product includes and/or depends on the following third-party software,
+each used under the Apache License 2.0 (compatible with AGPL-3.0):
+
+1. scrcpy / scrcpy-server
+   Copyright (C) 2018 Genymobile / Romain Vimont
+   License: Apache License 2.0
+   https://github.com/Genymobile/scrcpy
+   Used as: the privileged server component (scrcpy-server.jar) that runs on the
+   SOURCE device under the shell UID via wireless ADB. It is fetched at build
+   time (tools/fetch-scrcpy-server.sh) and is NOT redistributed in this repo.
+
+2. dadb
+   Copyright (C) mobile.dev
+   License: Apache License 2.0
+   https://github.com/mobile-dev-inc/dadb
+   Used as: the in-app ADB protocol client (pairing, connect, push, shell).
+
+A copy of the Apache License 2.0 is available at:
+   https://www.apache.org/licenses/LICENSE-2.0

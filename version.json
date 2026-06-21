@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "versionCode": 1,
+  "releaseName": "Tesla",
+  "releaseNameTheme": "Afstandsbedienings-/teleoperatie-pioniers",
+  "releaseNameThemeNote": "Nikola Tesla — 1898, eerste draadloze afstandsbediening (teleautomaton). Reeks: Tesla -> Torres -> Ducretet -> Branly -> Richardson (VNC) -> Marconi",
+  "stage": "skeleton",
+  "date": "2026-06-21",
+  "license": "AGPL-3.0",
+  "visibility": "PUBLIC",
+  "ecosystem": "Meta_Auto",
+  "package": "nl.icthorse.android2androidmirror"
+}
