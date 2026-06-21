@@ -8,6 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import nl.icthorse.android2androidmirror.session.MirrorSession
 import nl.icthorse.android2androidmirror.state.ConnectionState
 import nl.icthorse.android2androidmirror.ui.MirrorScreen
 import nl.icthorse.android2androidmirror.ui.PairingScreen
@@ -19,6 +20,7 @@ import nl.icthorse.android2androidmirror.ui.PairingScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MirrorSession.init(applicationContext)
         setContent { App() }
     }
 }
