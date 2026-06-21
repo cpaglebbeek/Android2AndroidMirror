@@ -17,28 +17,41 @@ verantwoord — sanitycheck-vriendelijk.
 | # | Onderwerp | Besluit | Reden |
 |---|---|---|---|
 | 1 | Control-/inputpad | **scrcpy-model (wireless ADB, no-root)** | Enige no-root pad met volledige touch+echt keyboard+laagste latency; legt de zware encode op de sterke bron |
-| 2 | Tooling | **scrcpy-server embedden + eigen dunne client (dadb)** | Het geprivilegieerde, bewezen deel hergebruiken; alleen de lichte tablet-client zelf bouwen |
+| 2 | Tooling | **scrcpy-server embedden + eigen dunne client (libadb-android)** — ⚠️ *herzien in v0.0.1-impl, was dadb* | Het geprivilegieerde, bewezen deel hergebruiken; alleen de lichte tablet-client zelf bouwen. dadb bleek géén Android 11+ draadloze pairing (SPAKE2+TLS) te kunnen en spreekt alleen plaintext-ADB → onbruikbaar voor de Wireless-Debugging-flow. libadb-android (MuntashirAkon) levert wél pairing+TLS+shell+sync, no-root. |
 | 3 | Transport + codec | **scrcpy-native TCP via ADB-tunnel · H.264 · 1024px / 2 Mbps / 24 fps · low-latency** | Lokaal tether-net is schoon → TCP volstaat; H.264 = universeel HW-decode; downscale aan de bron ontlast beide kanten |
 | 4 | Discovery + pairing | **mDNS/NSD autodiscovery + gateway-IP-hint + eenmalig pairen** | Precies hoe Android Studio draadloze toestellen vindt; pairing-sleutel blijft vertrouwd |
 | 5 | Scope v0.0.1 | **view + touch + keyboard (alles-in-één)**; audio uitgesteld/optioneel | Volledige eis meteen; audio kan via BT-A2DP naar de autoradio i.p.v. via de mirror |
 | 6 | Ecosysteem | **sub-master `Meta_Auto`** | Groepeert de 5 in-auto-display-projecten |
-| 7 | Visibility + licentie | **PUBLIC · AGPL-3.0 + NOTICE** | Breed herbruikbaar; scrcpy+dadb zijn Apache-2.0 (AGPL-compatibel) |
+| 7 | Visibility + licentie | **PUBLIC · AGPL-3.0 + NOTICE** | Breed herbruikbaar; scrcpy = Apache-2.0; libadb-android = dual GPL-3.0-or-later OR Apache-2.0 (beide AGPL-3.0-compatibel); conscrypt = Apache-2.0 |
 | 8 | Naam + thema | **Android2AndroidMirror · teleoperatie-pioniers · v0.0.1-Tesla** | Thema raakt de USP (besturing op afstand) |
 
 ## Componenten (cartablet-client)
 
 ```
-MainActivity ── ConnectionState (StateFlow-brug) ──┐
-   │                                                │
-   ├─ discovery/AdbDiscovery   (mDNS/NSD + gateway-hint)
-   ├─ adb/AdbClient            (dadb: pair/connect/push/shell)
-   ├─ scrcpy/ScrcpyServer      (jar pushen + app_process starten, profiel bp3)
-   ├─ scrcpy/VideoStream       (H.264 socket → MediaCodec → Surface)
-   ├─ scrcpy/ControlChannel    (touch+key serialiseren → control-socket)
-   ├─ input/TouchMapper        (tablet-coörd → bron-coörd, letterbox-correct)
-   ├─ input/KeyboardBridge     (IME → INJECT_TEXT / INJECT_KEYCODE)
-   └─ ui/{PairingScreen,MirrorScreen}
+App (Conscrypt+PRNGFixes-init) · MainActivity ── ConnectionState (StateFlow-brug)
+   │
+   └─ session/MirrorSession    (coördinator: discovery→pair→connect→push→start→video+control)
+        ├─ discovery/AdbDiscovery   (libadb AdbMdns: connect+pairing services + gateway-hint)
+        ├─ adb/MirrorAdbManager     (AbsAdbConnectionManager: RSA-key + X509-cert, persistent)
+        ├─ adb/AdbClient            (libadb: pair/connect/open + sync-push van de jar)
+        ├─ scrcpy/ScrcpyServer      (jar pushen + app_process starten + dual-socket handshake)
+        ├─ scrcpy/VideoStream       (H.264 frame-meta → MediaCodec low-latency → Surface)
+        ├─ scrcpy/ControlChannel    (touch+key+text serialiseren → control-socket)
+        ├─ input/TouchMapper        (tablet-coörd → bron-coörd, letterbox-correct)
+        ├─ input/KeyboardBridge     (IME → INJECT_TEXT / INJECT_KEYCODE)
+        └─ ui/{PairingScreen,MirrorScreen}
 ```
+
+## Pairing/TLS-realiteit (v0.0.1-impl)
+
+De Android 11+ Wireless-Debugging-flow is **TLS-only** en autoriseert een nieuw client-cert
+via een **SPAKE2-pairing** met de 6-cijfercode. De oorspronkelijke tooling-keuze (dadb) kan
+dit niet: dadb spreekt alleen plaintext-ADB en heeft geen pairing-API. Daarom is in de
+implementatie overgestapt op **libadb-android** (MuntashirAkon, uit App Manager), dat de
+volledige stack levert: `AbsAdbConnectionManager.pair()/connect()/openStream()` + ingebouwde
+`AdbMdns`. Pushen van de scrcpy-server.jar doen we zelf via het ADB **sync**-protocol
+(`AdbClient.pushServer`), want libadb heeft geen push-helper. Het client-cert wordt in
+app-private opslag bewaard → pairen is écht eenmalig (beslispunt 4 intact).
 
 ## Bewuste niet-keuzes
 

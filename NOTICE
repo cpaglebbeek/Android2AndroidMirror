@@ -8,8 +8,8 @@ This product is licensed under the GNU Affero General Public License v3.0
 THIRD-PARTY COMPONENTS
 ================================================================================
 
-This product includes and/or depends on the following third-party software,
-each used under the Apache License 2.0 (compatible with AGPL-3.0):
+This product includes and/or depends on the following third-party software
+(each license is compatible with AGPL-3.0):
 
 1. scrcpy / scrcpy-server
    Copyright (C) 2018 Genymobile / Romain Vimont
@@ -19,11 +19,21 @@ each used under the Apache License 2.0 (compatible with AGPL-3.0):
    SOURCE device under the shell UID via wireless ADB. It is fetched at build
    time (tools/fetch-scrcpy-server.sh) and is NOT redistributed in this repo.
 
-2. dadb
-   Copyright (C) mobile.dev
+2. libadb-android (incl. sun-security-android)
+   Copyright (C) Muntashir Al-Islam
+   License: GPL-3.0-or-later OR Apache-2.0 (dual)
+   https://github.com/MuntashirAkon/libadb-android
+   Used as: the in-app ADB client — Android 11+ wireless pairing (SPAKE2 + TLS),
+   connect, shell and stream services. Replaces the earlier dadb choice, which
+   has no wireless-pairing support (see BUGLIST B1).
+
+3. Conscrypt
+   Copyright (C) The Android Open Source Project
    License: Apache License 2.0
-   https://github.com/mobile-dev-inc/dadb
-   Used as: the in-app ADB protocol client (pairing, connect, push, shell).
+   https://github.com/google/conscrypt
+   Used as: the TLS provider for connecting to a remote adbd (the SOURCE device).
 
 A copy of the Apache License 2.0 is available at:
    https://www.apache.org/licenses/LICENSE-2.0
+The GNU GPL v3.0 is available at:
+   https://www.gnu.org/licenses/gpl-3.0.html
