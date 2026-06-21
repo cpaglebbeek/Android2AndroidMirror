@@ -5,6 +5,7 @@
 | ID | Datum | Ernst | Status | Omschrijving |
 |----|-------|-------|--------|--------------|
 | B1 | 2026-06-21 | Hoog | Opgelost (pivot) | **dadb kan niet draadloos pairen.** Broninspectie van `dev.mobile:dadb:1.2.10` toonde geen pairing-API (geen SPAKE2/TLS) en alleen plaintext-ADB → onbruikbaar voor de Android 11+ Wireless-Debugging-flow (TLS-only). R3 gematerialiseerd, erger dan verwacht. **Fix:** tooling-pivot naar **libadb-android 3.1.1** (beslispunt 2 herzien). |
+| B2 | 2026-06-21 | Laag | Opgelost | **Naamclash `App`.** De `Application`-klasse `App` botste met de Compose-functie `App()` in MainActivity (zelfde package) → "Overload resolution ambiguity" bij `compileDebugKotlin`. Enige compile-fout uit de eerste echte build op HC55. **Fix:** Composable hernoemd `App()` → `Root()`. |
 
 ## Verwachte risico's (te bewaken bij implementatie)
 

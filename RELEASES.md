@@ -6,7 +6,7 @@ Geplande reeks: Tesla → Torres → Ducretet → Branly → Richardson (VNC) �
 | Versie | Code | Datum | Status | Inhoud |
 |--------|------|-------|--------|--------|
 | 0.0.1-Tesla | 1 | 2026-06-21 | skeleton | Repo-skelet: alle componentgrenzen, Gradle/Compose-config, dadb-dep, ARCHITECTURE met 8 besluiten. Nog geen werkende APK. |
-| 0.0.1-Tesla | 2 | 2026-06-21 | implemented (build-blind) | Volledige v0.0.1-impl: **tooling-pivot dadb→libadb-android** (dadb kon niet pairen, zie BUGLIST B1). libadb pairing(SPAKE2+TLS)/connect + sync-push; AdbMdns-discovery; scrcpy dual-socket-handshake; MediaCodec H.264 low-latency decode; control-protocol (touch/key/text); MirrorSession-coördinator + Compose-UI met IME. Op HC55 niet te compileren (geen SDK) → build+toesteltest op Mac is de verificatiegate. |
+| 0.0.1-Tesla | 2 | 2026-06-21 | implemented + compileert | Volledige v0.0.1-impl: **tooling-pivot dadb→libadb-android** (dadb kon niet pairen, zie BUGLIST B1). libadb pairing(SPAKE2+TLS)/connect + sync-push; AdbMdns-discovery; scrcpy dual-socket-handshake; MediaCodec H.264 low-latency decode; control-protocol (touch/key/text); MirrorSession-coördinator + Compose-UI met IME. **`assembleDebug` groen** (Android SDK alsnog op HC55 geïnstalleerd); APK bevat libspake2.so + libconscrypt_jni.so + scrcpy-server.jar. Enige compile-fout = naamclash App/App() (B2, gefixt). Nog niet op toestel getest. |
 
 ## Gepland
 

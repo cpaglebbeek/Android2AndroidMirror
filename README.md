@@ -5,10 +5,11 @@ root. De **bron** (een Samsung Z Fold 6) wordt vanaf een **trage Android-14 afte
 cartablet** bekeken én bediend (touch + on-screen keyboard), over de tethering-wifi van de
 bron.
 
-> Status: **v0.0.1-Tesla (versionCode 2)** — volledig geïmplementeerd maar **build-blind**:
-> geschreven op een server zonder Android SDK, dus nog niet gecompileerd of op een toestel
-> getest. Build + toesteltest gebeurt op de Mac (zie hieronder). Tooling-pivot t.o.v. het
-> skelet: **dadb → libadb-android** (dadb kon niet draadloos pairen; zie
+> Status: **v0.0.1-Tesla (versionCode 2)** — volledig geïmplementeerd en **compileert**:
+> `./gradlew assembleDebug` is groen, de debug-APK is gebouwd (incl. `libspake2.so` +
+> `libconscrypt_jni.so` + gebundelde `scrcpy-server.jar`). **Nog niet op een toestel getest** —
+> end-to-end hardware-smoke (Z Fold 6 → cartablet) is de volgende stap. Tooling-pivot t.o.v.
+> het skelet: **dadb → libadb-android** (dadb kon niet draadloos pairen; zie
 > [BUGLIST.md](BUGLIST.md) B1). Zie ook [ARCHITECTURE.md](ARCHITECTURE.md) /
 > [RELEASES.md](RELEASES.md).
 

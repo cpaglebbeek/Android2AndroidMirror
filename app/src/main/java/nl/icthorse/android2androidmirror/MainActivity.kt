@@ -21,12 +21,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MirrorSession.init(applicationContext)
-        setContent { App() }
+        setContent { Root() }
     }
 }
 
 @Composable
-private fun App() {
+private fun Root() {
     val phase by ConnectionState.phase.collectAsState()
     MaterialTheme {
         Surface {
