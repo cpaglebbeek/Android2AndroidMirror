@@ -13,6 +13,25 @@ bron.
 > [BUGLIST.md](BUGLIST.md) B1). Zie ook [ARCHITECTURE.md](ARCHITECTURE.md) /
 > [RELEASES.md](RELEASES.md).
 
+## 1 APK — alleen op de cartablet; de bron heeft géén app
+
+Er is **één APK**, en die hoort **alleen op de cartablet** (het trage doel dat kijkt + bestuurt).
+De app hoeft niet te weten of hij "bron" of "doel" is: **hij is altijd het doel/de client**.
+Er is dus geen rol-keuze of rol-detectie.
+
+| | Bron = Z Fold 6 | Doel = cartablet |
+|---|---|---|
+| Onze APK? | ❌ nee | ✅ ja (deze app) |
+| Wat draait er? | de via ADB gepushte **scrcpy-server.jar** onder shell-UID | onze client: discovery → pair → connect → jar pushen → server starten → decode → input terug |
+| Gebruikersactie | alleen **Wireless debugging aan** (QS-tegel) | app installeren + verbinden |
+
+De bron draait geen geïnstalleerde app: de zware capture/encode gebeurt door de
+**scrcpy-server.jar** die als asset in onze APK zit (`assets/scrcpy-server/scrcpy-server.jar`),
+op het moment van verbinden over ADB naar de Z Fold 6 wordt geschoven en daar onder de
+shell-UID start (en zichzelf met `cleanup=true` weer opruimt). Juist daarom is no-root
+haalbaar: we hoeven op de bron géén app met capture-/inject-rechten te installeren — de
+scrcpy-server krijgt die rechten via de ADB-shell-UID.
+
 ## Hoe het werkt
 
 Dit is het **scrcpy-model, no-root**:

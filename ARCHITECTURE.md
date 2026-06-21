@@ -12,6 +12,23 @@ verantwoord — sanitycheck-vriendelijk.
   latency, lichtst mogelijke render op de zwakke tablet, makkelijkst mogelijke setup
   (autodiscovery).
 
+## Topologie — 1 APK, alleen op de cartablet (de bron heeft géén app)
+
+Er is **één APK**, te installeren **alleen op de cartablet** (het doel). De app kent geen
+rol-keuze en doet geen rol-detectie: **hij is per definitie de client/viewer/controller**.
+
+- **Doel (cartablet):** draait deze app — discovery → pairen → verbinden → scrcpy-server.jar
+  pushen → server starten → H.264 decoden → touch/keyboard terugsturen.
+- **Bron (Z Fold 6):** draait **geen geïnstalleerde app**. Enige gebruikersactie: Wireless
+  debugging aan. De zware capture/encode gebeurt door de officiële **scrcpy-server.jar**, die
+  als asset in onze APK zit (`assets/scrcpy-server/scrcpy-server.jar`), bij het verbinden over
+  ADB naar `/data/local/tmp/` wordt gepusht en daar onder de **shell-UID** start
+  (`cleanup=true` ruimt op bij afsluiten).
+
+Gevolg: er is bewust **geen symmetrische app** en geen "ben ik bron of doel?"-logica. Dit is
+ook wat no-root mogelijk maakt — op de bron hoeft niets met capture-/inject-rechten te worden
+geïnstalleerd; de scrcpy-server erft die rechten via de ADB-shell-UID.
+
 ## Beslispunten
 
 | # | Onderwerp | Besluit | Reden |
