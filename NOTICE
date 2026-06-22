@@ -26,6 +26,16 @@ This product includes and/or depends on the following third-party software
    Used as: the in-app ADB client — Android 11+ wireless pairing (SPAKE2 + TLS),
    connect, shell and stream services. Replaces the earlier dadb choice, which
    has no wireless-pairing support (see BUGLIST B1).
+   VENDORED: libadb-android 3.1.1 source is included verbatim under ./libadb
+   (as a local Gradle module) instead of the JitPack artifact, so that a USB
+   ADB-host transport can be added — upstream AdbConnection creates its Socket in
+   a private constructor with no stream-injection seam (see beslispunt 2b in
+   ARCHITECTURE.md). Per-file SPDX headers are preserved. Local additions for the
+   USB transport are marked as such and remain under the same dual license.
+   Bundled transitive components of this module:
+     - BouncyCastle (bcprov-jdk15to18), License: MIT-style (BC), bouncycastle.org
+     - spake2-java / spake2-android (Muntashir Al-Islam / The AOSP via BoringSSL),
+       License: GPL-3.0-or-later OR Apache-2.0 / BSD-3-Clause (libspake2)
 
 3. Conscrypt
    Copyright (C) The Android Open Source Project

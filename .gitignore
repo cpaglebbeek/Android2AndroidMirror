@@ -20,3 +20,4 @@ app/src/main/assets/scrcpy-server/scrcpy-server.jar
 *.jks
 *.keystore
 keystore.properties
+libadb/build/

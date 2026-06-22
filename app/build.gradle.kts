@@ -52,7 +52,8 @@ dependencies {
     // In-app ADB-client (beslispunt 2, herzien) — libadb-android: echte Android 11+
     // draadloze pairing (SPAKE2 + TLS) + connect + shell + sync, no-root.
     // Dual-licensed GPL-3.0-or-later OR Apache-2.0 → AGPL-3.0-compatibel.
-    implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
+    // VENDORED als lokale :libadb-module (beslispunt 2b) om een USB-ADB-host te injecteren.
+    implementation(project(":libadb"))
     // X509-certgeneratie voor het ADB-TLS-clientcertificaat (sun.security.x509 backport).
     implementation("com.github.MuntashirAkon:sun-security-android:1.1")
     // Custom Conscrypt: aanbevolen om met een REMOTE adbd te TLS-verbinden (libadb README).

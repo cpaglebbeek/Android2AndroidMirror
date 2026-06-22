@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Android2AndroidMirror"
 include(":app")
+include(":libadb")
