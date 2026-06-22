@@ -37,9 +37,16 @@ public class AdbConnection implements Closeable {
 
     /**
      * The underlying socket that this class uses to communicate with the target device.
+     * A2AM-USB: nullable geworden — bij een {@link AdbChannel}-transport (bv. USB) is er geen socket.
      */
-    @NonNull
+    @Nullable
     private final Socket mSocket;
+
+    /**
+     * A2AM-USB: alternatief transport i.p.v. een TCP-socket. Niet-null ⇒ USB-/channel-modus.
+     */
+    @Nullable
+    private final AdbChannel mChannel;
 
     @NonNull
     private final String mHost;
@@ -186,6 +193,18 @@ public class AdbConnection implements Closeable {
     }
 
     /**
+     * A2AM-USB: publieke factory voor een channel-transport (bv. USB-ADB-host). Parallel aan de
+     * host/port-factory's hierboven; nodig omdat {@link KeyPair} package-private is.
+     */
+    @WorkerThread
+    @NonNull
+    public static AdbConnection create(@NonNull AdbChannel channel, @NonNull PrivateKey privateKey,
+                                       @NonNull Certificate certificate, int api) throws IOException {
+        return new AdbConnection(Objects.requireNonNull(channel),
+                new KeyPair(Objects.requireNonNull(privateKey), Objects.requireNonNull(certificate)), api);
+    }
+
+    /**
      * Internal constructor to initialize some internal state
      */
     @WorkerThread
@@ -202,11 +221,35 @@ public class AdbConnection implements Closeable {
             //noinspection UnnecessaryInitCause
             throw (IOException) new IOException().initCause(th);
         }
+        this.mChannel = null;
         this.mPlainInputStream = mSocket.getInputStream();
         this.mPlainOutputStream = mSocket.getOutputStream();
 
         // Disable Nagle because we're sending tiny packets
         mSocket.setTcpNoDelay(true);
+
+        this.mOpenedStreams = new ConcurrentHashMap<>();
+        this.mLastLocalId = 0;
+        this.mConnectionThread = createConnectionThread();
+    }
+
+    /**
+     * A2AM-USB: constructor voor een {@link AdbChannel}-transport (geen TCP-socket). Hergebruikt
+     * de volledige handshake/multiplexer ongewijzigd; alleen de byte-stromen komen van het channel.
+     * TLS (A_STLS) is hier niet van toepassing — adbd over USB / op {@code tcp:5555} stuurt A_AUTH.
+     */
+    @WorkerThread
+    private AdbConnection(@NonNull AdbChannel channel, @NonNull KeyPair keyPair, int api) throws IOException {
+        this.mHost = "channel";
+        this.mPort = 0;
+        this.mApi = api;
+        this.mProtocolVersion = AdbProtocol.getProtocolVersion(mApi);
+        this.mMaxData = AdbProtocol.getMaxData(api);
+        this.mKeyPair = Objects.requireNonNull(keyPair);
+        this.mSocket = null;
+        this.mChannel = Objects.requireNonNull(channel);
+        this.mPlainInputStream = channel.getInputStream();
+        this.mPlainOutputStream = channel.getOutputStream();
 
         this.mOpenedStreams = new ConcurrentHashMap<>();
         this.mLastLocalId = 0;
@@ -278,6 +321,12 @@ public class AdbConnection implements Closeable {
                             break;
                         }
                         case AdbProtocol.A_STLS: {
+                            // A2AM-USB: TLS-upgrade vereist een echte Socket. Bij een channel-transport
+                            // (USB / classic tcp:5555) komt A_STLS niet voor; defensief negeren i.p.v. NPE.
+                            if (mSocket == null) {
+                                Log.w(TAG, "A_STLS ontvangen op een channel-transport zonder socket — genegeerd.");
+                                break;
+                            }
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
                                 sendPacket(AdbProtocol.generateStls());
 
@@ -412,7 +461,11 @@ public class AdbConnection implements Closeable {
      * Whether the underlying socket is connected to an ADB daemon and is not in a closed state.
      */
     public boolean isConnected() {
-        return !mSocket.isClosed() && mSocket.isConnected();
+        // A2AM-USB: bij een channel-transport is er geen socket-toestand om te bevragen.
+        if (mChannel != null) {
+            return mChannel.isConnected();
+        }
+        return mSocket != null && !mSocket.isClosed() && mSocket.isConnected();
     }
 
     /**
@@ -579,8 +632,13 @@ public class AdbConnection implements Closeable {
      */
     @Override
     public void close() throws IOException {
-        // Closing the socket will kick the connection thread
-        mSocket.close();
+        // Closing the transport will kick the connection thread
+        // A2AM-USB: sluit het channel óf de socket, afhankelijk van het transport.
+        if (mChannel != null) {
+            mChannel.close();
+        } else if (mSocket != null) {
+            mSocket.close();
+        }
 
         // Wait for the connection thread to die
         mConnectionThread.interrupt();
@@ -618,6 +676,8 @@ public class AdbConnection implements Closeable {
         private Certificate mCertificate;
         private KeyPair mKeyPair;
         private String mDeviceName;
+        // A2AM-USB: alternatief transport; indien gezet wordt host/port genegeerd.
+        private AdbChannel mChannel;
 
         public Builder() {
         }
@@ -687,6 +747,15 @@ public class AdbConnection implements Closeable {
         }
 
         /**
+         * A2AM-USB: gebruik een {@link AdbChannel}-transport (bv. USB) i.p.v. een TCP-socket.
+         * Wanneer gezet worden host en port genegeerd.
+         */
+        public Builder setChannel(AdbChannel channel) {
+            this.mChannel = channel;
+            return this;
+        }
+
+        /**
          * Creates a new {@link AdbConnection} associated with the socket and crypto object specified.
          *
          * @throws IOException If there was an error while establishing a socket connection
@@ -698,7 +767,10 @@ public class AdbConnection implements Closeable {
                 }
                 mKeyPair = new KeyPair(mPrivateKey, mCertificate);
             }
-            AdbConnection adbConnection = create(mHost, mPort, mKeyPair, mApi);
+            // A2AM-USB: channel-transport heeft voorrang op host/port.
+            AdbConnection adbConnection = mChannel != null
+                    ? new AdbConnection(mChannel, mKeyPair, mApi)
+                    : create(mHost, mPort, mKeyPair, mApi);
             if (mDeviceName != null) {
                 adbConnection.setDeviceName(mDeviceName);
             }
