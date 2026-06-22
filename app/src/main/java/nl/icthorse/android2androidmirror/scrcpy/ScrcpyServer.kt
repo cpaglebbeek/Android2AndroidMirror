@@ -32,7 +32,9 @@ object ScrcpyServer {
     // Beslispunt 3 — defaults afgestemd op een trage Android-14 cartablet-decoder.
     data class Profile(
         val maxSize: Int = 1024,
-        val videoBitRate: String = "2M",
+        // B3: de scrcpy-SERVER verwacht bits/sec als integer (de desktop-client rekent "2M" om;
+        // wij sturen rechtstreeks door). "2M" gaf Integer.parseInt-crash → server startte nooit.
+        val videoBitRate: String = "2000000", // 2 Mbps
         val maxFps: Int = 24,
         val videoCodec: String = "h264",
         val audio: Boolean = false,   // beslispunt 5 — audio uitgesteld/optioneel (BT-A2DP volstaat vaak)
