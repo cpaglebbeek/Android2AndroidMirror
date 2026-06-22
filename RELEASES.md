@@ -8,6 +8,10 @@ Geplande reeks: Tesla → Torres → Ducretet → Branly → Richardson (VNC) �
 | 0.0.1-Tesla | 1 | 2026-06-21 | skeleton | Repo-skelet: alle componentgrenzen, Gradle/Compose-config, dadb-dep, ARCHITECTURE met 8 besluiten. Nog geen werkende APK. |
 | 0.0.1-Tesla | 2 | 2026-06-21 | implemented + compileert | Volledige v0.0.1-impl: **tooling-pivot dadb→libadb-android** (dadb kon niet pairen, zie BUGLIST B1). libadb pairing(SPAKE2+TLS)/connect + sync-push; AdbMdns-discovery; scrcpy dual-socket-handshake; MediaCodec H.264 low-latency decode; control-protocol (touch/key/text); MirrorSession-coördinator + Compose-UI met IME. **`assembleDebug` groen** (Android SDK alsnog op HC55 geïnstalleerd); APK bevat libspake2.so + libconscrypt_jni.so + scrcpy-server.jar. Enige compile-fout = naamclash App/App() (B2, gefixt). Nog niet op toestel getest. |
 
+### Tooling/repo-hygiëne (2026-06-22, geen APK-wijziging)
+- **Gradle-wrapper toegevoegd** (`gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.jar`, v8.11.1) — ontbrak; `./gradlew assembleDebug` (zoals CLAUDE.md voorschrijft) werkte daardoor nergens. Build via wrapper bevestigd groen op HC55.
+- **Statische protocol-review** scrcpy v3.1: handshake/framing/control byte-exact bevonden (zie BUGLIST R7); gebundelde `scrcpy-server.jar` byte-identiek aan officiële v3.1.
+
 ## Gepland
 
 - **0.0.1-Tesla (verifiëren op toestel):** op de Mac `fetch-scrcpy-server.sh` + `./gradlew
