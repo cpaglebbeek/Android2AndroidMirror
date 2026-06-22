@@ -1,6 +1,7 @@
 package nl.icthorse.android2androidmirror.adb
 
 import android.content.Context
+import io.github.muntashirakon.adb.AdbChannel
 import io.github.muntashirakon.adb.AdbStream
 import java.io.OutputStream
 
@@ -32,6 +33,58 @@ class AdbClient(context: Context) {
     fun connect(host: String, connectPort: Int): Result<Unit> = runCatching {
         check(manager.connect(host, connectPort)) { "verbinden geweigerd (gepaird?)" }
     }
+
+    /**
+     * Beslispunt 2b — verbinden over een [AdbChannel]-transport (USB-ADB-host). libadb voert
+     * dezelfde A_CNXN/A_AUTH-handshake uit; de eerste keer triggert dit op de bron de RSA-
+     * "Sta debugging toe?"-dialoog. Geen TLS (adbd over USB stuurt A_AUTH, geen A_STLS).
+     */
+    fun connectUsb(channel: AdbChannel): Result<Unit> = runCatching {
+        check(manager.connect(channel)) { "USB-verbinden geweigerd door de bron" }
+    }
+
+    /**
+     * Beslispunt 2b — classic plaintext-ADB op een TCP-poort (bv. `gatewayHint():5555` na de
+     * USB-bootstrap). Zelfde call als [connect]: libadb blijft plaintext zolang de daemon geen
+     * A_STLS stuurt, en `tcp:5555`-adbd doet dat niet.
+     */
+    fun connectTcp(host: String, port: Int): Result<Unit> = runCatching {
+        check(manager.connect(host, port)) { "TCP-verbinden geweigerd (autorisatie?)" }
+    }
+
+    /**
+     * Beslispunt 2b — USB-bootstrap: zet de bron-adbd via USB in TCP-modus op [port] (zoals
+     * `adb tcpip 5555`), zodat de adbd daarna óók op de hotspot-interface luistert. Verbindt over
+     * het [channel], opent de host-service `tcpip:<port>` (dat levert de command af), leest de
+     * statusregel best-effort, en verbreekt de USB-verbinding **zonder de sleutel te vernietigen**
+     * (zodat de TCP-reconnect met dezelfde, reeds vertrouwde sleutel kan).
+     *
+     * @return de statusregel van de daemon (bv. "restarting in TCP mode port: 5555"), indien gelezen.
+     */
+    fun bootstrapTcpipOverUsb(channel: AdbChannel, port: Int = 5555): Result<String> = runCatching {
+        check(manager.connect(channel)) { "USB-verbinden geweigerd door de bron" }
+        try {
+            val response = StringBuilder()
+            manager.openStream("tcpip:$port").use { stream ->
+                val buf = ByteArray(256)
+                val inp = stream.openInputStream()
+                // adbd schrijft één statusregel en sluit dan de stream → begrensde lees-lus.
+                var n = inp.read(buf, 0, buf.size)
+                while (n > 0) {
+                    response.append(String(buf, 0, n, Charsets.UTF_8))
+                    if (response.length >= 512) break
+                    n = inp.read(buf, 0, buf.size)
+                }
+            }
+            response.toString().trim()
+        } finally {
+            // GEEN close() — dat zou de private key vernietigen; alleen de verbinding sluiten.
+            runCatching { manager.disconnect() }
+        }
+    }
+
+    /** Verbreek de huidige verbinding maar behoud de sleutel (i.t.t. [close]). */
+    fun disconnect(): Result<Unit> = runCatching { manager.disconnect() }
 
     /** Open een ruwe ADB-stream naar een willekeurige destination (bv. localabstract:scrcpy). */
     fun open(destination: String): AdbStream = manager.openStream(destination)
