@@ -46,7 +46,7 @@ fun PairingScreen() {
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Android2AndroidMirror — v0.0.2-Torres")
+        Text("Android2AndroidMirror — v0.0.2.1-Torres")
         Text("Status: $phase")
         error?.let { Text("Fout: $it") }
 

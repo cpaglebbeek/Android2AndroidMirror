@@ -12,8 +12,8 @@ android {
         applicationId = "nl.icthorse.android2androidmirror"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.0.2-Torres"
+        versionCode = 4
+        versionName = "0.0.2.1-Torres"
     }
 
     buildTypes {

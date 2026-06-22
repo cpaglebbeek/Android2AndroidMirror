@@ -86,9 +86,32 @@ object ScrcpyServer {
         // Server starten; de shell-stream blijft open zolang de server draait.
         val shell = adb.open("shell:${launchCommand(profile)}")
 
+        // R7/diagnose: lees de server-stdout/stderr mee zodat een mislukte start (corrupte jar →
+        // ClassNotFound, onbekende optie, SELinux, version-mismatch) zichtbaar wordt i.p.v. een
+        // kale socket-time-out. Daemon-thread; blokkeert de pijplijn niet.
+        val serverLog = StringBuilder()
+        Thread {
+            runCatching {
+                val s = shell.openInputStream()
+                val buf = ByteArray(1024)
+                var n = s.read(buf)
+                while (n >= 0 && serverLog.length < 4000) {
+                    synchronized(serverLog) { serverLog.append(String(buf, 0, n)) }
+                    n = s.read(buf)
+                }
+            }
+        }.apply { isDaemon = true; start() }
+
         // tunnel_forward: de localabstract-socket bestaat pas zodra de server luistert.
         // Kort retried verbinden tot de video-socket er is.
-        val videoSocket = connectWithRetry(adb)
+        val videoSocket = try {
+            connectWithRetry(adb)
+        } catch (t: Throwable) {
+            Thread.sleep(300) // geef de server-log even tijd om de fout te tonen
+            val log = synchronized(serverLog) { serverLog.toString().trim() }
+            val detail = if (log.isBlank()) "(geen server-output — startte app_process wel?)" else log
+            throw IllegalStateException("scrcpy-server-socket onbereikbaar. Server-output:\n$detail", t)
+        }
         val videoIn = DataInputStream(videoSocket.openInputStream())
 
         // 1) dummy-byte (server-gereed).
