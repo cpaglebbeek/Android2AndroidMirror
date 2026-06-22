@@ -382,6 +382,31 @@ public abstract class AbsAdbConnectionManager implements Closeable {
     }
 
     /**
+     * A2AM-USB: verbind met adbd over een {@link AdbChannel}-transport (bv. een USB-ADB-host)
+     * i.p.v. een TCP-socket. De rest van de stack (A_CNXN/A_AUTH-handshake, stream-multiplexer,
+     * {@link #openStream(String)}) is identiek.
+     *
+     * @param channel Het transport dat de ruwe ADB-byte-stromen levert.
+     * @return {@code true} als de verbinding tot stand kwam, anders {@code false}.
+     */
+    @WorkerThread
+    public boolean connect(@NonNull AdbChannel channel)
+            throws IOException, InterruptedException, AdbPairingRequiredException {
+        synchronized (mLock) {
+            if (isConnected()) {
+                return false;
+            }
+            mAdbConnection = new AdbConnection.Builder()
+                    .setChannel(Objects.requireNonNull(channel))
+                    .setApi(mApi)
+                    .setKeyPair(getAdbKeyPair())
+                    .setDeviceName(Objects.requireNonNull(getDeviceName()))
+                    .build();
+            return mAdbConnection.connect(mTimeout, mTimeoutUnit, mThrowOnUnauthorised);
+        }
+    }
+
+    /**
      * Disconnect the underlying {@link AdbConnection}.
      *
      * @throws IOException If the underlying socket fails to close

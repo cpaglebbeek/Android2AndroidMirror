@@ -10,6 +10,10 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Beslispunt 2b — cartablet als USB-ADB-host (OTG). Optioneel: bij geen OTG-host
+         vervallen de USB-modi en blijft alleen WIRELESS over (zie BUGLIST R11). -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
     <application
         android:name=".App"
         android:allowBackup="true"

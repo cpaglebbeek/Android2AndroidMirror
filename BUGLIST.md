@@ -19,3 +19,18 @@
 - **R8** **Conscrypt-provider vereist** voor TLS naar remote adbd; zonder `App`-init (Security.insertProviderAt) faalt pairing/connect.
 - **R9** Connect-poort kan vlak ná pairing nog niet via mDNS bekend zijn → soms "zoek opnieuw" nodig vóór verbinden (autoConnect-fallback is follow-up).
 - **R10** v0.0.1 = single-pointer touch + tekst/Enter/Backspace; multi-touch, pijl-/functietoetsen en scroll zijn follow-up.
+
+## USB-transport (beslispunt 2b) — build-blind risico's
+
+Reden voor het USB-pad: Wireless Debugging kan op de Z Fold **niet** aan terwijl die zelf de
+hotspot is (vereist Wi-Fi-client). USB-debugging heeft die eis niet → via de cartablet als
+USB-host kunnen we `tcpip:5555` activeren (bootstrap) of de hele mirror over USB draaien (fallback).
+
+- **R11** **Cartablet OTG-host onbekend.** Een goedkope Android-14 cartablet ondersteunt mogelijk geen USB-host/OTG. Goedkope vroege check: USB-stick via OTG → mount hij? Zonder OTG-host vervalt het hele USB-pad. (Manifest declareert `android.hardware.usb.host` als optioneel.)
+- **R12** **bulkTransfer-timeoutsemantiek build-blind.** `UsbAdbChannel` leest met timeout 0 (= oneindig blokkeren) en behandelt `n<0` als ontkoppeling; ZLP-gedrag (payload veelvoud van max-packet) niet afgehandeld. Alleen op hardware te bevestigen.
+- **R13** **ADB-over-USB write-framing build-blind.** Elk bericht (24B header + payload) wordt als byte-stroom in ≤16KB-stukken over de bulk-OUT gestuurd; aanname dat adbd 24+`data_length` sequentieel leest. Verifiëren op toestel; bij mismatch herzien.
+- **R14** **RSA-autorisatie + USB-debugging-eis.** De ADB-interface verschijnt alleen als USB-debugging op de Z Fold aanstaat; de eerste connect triggert de "Sta debugging toe?"-RSA-dialoog (eenmalig). Permissie-broadcastflow (PendingIntent + receiver) wordt in de sessie-laag (F4) afgehandeld.
+- **R15** **Bootstrap→wifi-overgang.** Na `tcpip:5555` over USB moet de 5555-listener op de hotspot-interface verschijnen en blijven tot reboot; plaintext TCP-reconnect naar `gatewayHint():5555`. Timing/persistentie op toestel bevestigen.
+
+> Crypto-/transport-layer-peel (memory-feedback): deze multi-laag USB+ADB-stack onthult bugs
+> laag-voor-laag; **hardware-smoke is een verplichte release-gate**, JVM-builds bewijzen niets.
