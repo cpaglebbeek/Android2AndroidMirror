@@ -6,9 +6,13 @@ import android.view.Surface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import nl.icthorse.android2androidmirror.adb.AdbClient
+import nl.icthorse.android2androidmirror.adb.UsbPermission
 import nl.icthorse.android2androidmirror.discovery.AdbDiscovery
+import nl.icthorse.android2androidmirror.settings.MirrorMode
+import nl.icthorse.android2androidmirror.settings.MirrorSettings
 import nl.icthorse.android2androidmirror.input.KeyboardBridge
 import nl.icthorse.android2androidmirror.input.TouchMapper
 import nl.icthorse.android2androidmirror.scrcpy.ControlChannel
@@ -24,6 +28,8 @@ import nl.icthorse.android2androidmirror.state.ConnectionState
  * MirrorScreen) praat alleen met dit object; de netwerk-/decode-details blijven hier.
  */
 object MirrorSession {
+
+    private const val BOOTSTRAP_PORT = 5555
 
     private lateinit var appContext: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -76,27 +82,85 @@ object MirrorSession {
                 ConnectionState.setPhase(ConnectionState.Phase.CONNECTING)
                 client.connect(source.host, connectPort).getOrThrow()
 
-                // 3) scrcpy-server.jar uit de assets pushen + starten + sockets opzetten.
-                val jarBytes = readJarOrThrow()
-                val pipe = ScrcpyServer.start(client, jarBytes).getOrThrow()
-                pipeline = pipe
-
-                control = ControlChannel(pipe.controlOut)
-                keyboard = KeyboardBridge(control!!)
-                touchMapper.updateSource(pipe.srcWidth, pipe.srcHeight)
-
-                // Server→client control-berichten (clipboard e.d.) wegslurpen zodat de
-                // control-socket niet volloopt en blokkeert.
-                drainControl(pipe)
-
-                stopDiscovery()
-                // UI mag nu naar MirrorScreen; de video start zodra de Surface beschikbaar is.
-                ConnectionState.setPhase(ConnectionState.Phase.STREAMING)
+                // 3) scrcpy-server.jar pushen + starten + sockets opzetten.
+                startPipeline(client)
             } catch (t: Throwable) {
                 ConnectionState.setError(t.message ?: t.javaClass.simpleName)
                 disconnect()
             }
         }
+    }
+
+    /**
+     * Beslispunt 2b — USB-modi (geen mDNS-discovery nodig). De cartablet claimt de Z-Fold-USB-
+     * interface en draait óf de bootstrap (`tcpip:5555` → daarna draadloos via de hotspot) óf de
+     * volledige mirror over USB. Modus uit [MirrorSettings].
+     */
+    fun startUsb() {
+        scope.launch {
+            try {
+                ConnectionState.setError(null)
+                val mode = MirrorSettings.mode(appContext)
+                val client = AdbClient(appContext).also { adb = it }
+
+                ConnectionState.setPhase(ConnectionState.Phase.CONNECTING)
+                val channel = UsbPermission.acquireChannel(appContext)
+
+                when (mode) {
+                    MirrorMode.FULL_USB -> {
+                        // Hele mirror over de kabel.
+                        client.connectUsb(channel).getOrThrow()
+                    }
+                    MirrorMode.USB_BOOTSTRAP_WIFI -> {
+                        // 1) tcpip:5555 activeren via USB (sluit het USB-channel + behoudt de key).
+                        client.bootstrapTcpipOverUsb(channel, BOOTSTRAP_PORT).getOrThrow()
+                        // 2) draadloos verder: de Z Fold IS de hotspot-gateway.
+                        val host = (discovery ?: AdbDiscovery(appContext).also { discovery = it })
+                            .gatewayHint()
+                            ?: error("geen gateway-IP — is de cartablet met de Z-Fold-hotspot verbonden?")
+                        connectTcpWithRetry(client, host, BOOTSTRAP_PORT)
+                    }
+                    MirrorMode.WIRELESS ->
+                        error("WIRELESS gebruikt 'Zoek + verbind', niet de USB-start")
+                }
+
+                startPipeline(client)
+            } catch (t: Throwable) {
+                ConnectionState.setError(t.message ?: t.javaClass.simpleName)
+                disconnect()
+            }
+        }
+    }
+
+    /** adbd luistert pas even ná `tcpip` op 5555 → kort retried plaintext-verbinden. */
+    private suspend fun connectTcpWithRetry(client: AdbClient, host: String, port: Int) {
+        var last: Throwable? = null
+        repeat(10) { attempt ->
+            val r = client.connectTcp(host, port)
+            if (r.isSuccess) return
+            last = r.exceptionOrNull()
+            delay(300L + attempt * 200L)
+        }
+        throw IllegalStateException("kon na bootstrap niet met $host:$port verbinden", last)
+    }
+
+    /** Gedeeld eindstuk: jar pushen, server starten, control/keyboard opzetten, naar STREAMING. */
+    private fun startPipeline(client: AdbClient) {
+        val jarBytes = readJarOrThrow()
+        val pipe = ScrcpyServer.start(client, jarBytes).getOrThrow()
+        pipeline = pipe
+
+        control = ControlChannel(pipe.controlOut)
+        keyboard = KeyboardBridge(control!!)
+        touchMapper.updateSource(pipe.srcWidth, pipe.srcHeight)
+
+        // Server→client control-berichten (clipboard e.d.) wegslurpen zodat de control-socket
+        // niet volloopt en blokkeert.
+        drainControl(pipe)
+
+        stopDiscovery()
+        // UI mag nu naar MirrorScreen; de video start zodra de Surface beschikbaar is.
+        ConnectionState.setPhase(ConnectionState.Phase.STREAMING)
     }
 
     private fun readJarOrThrow(): ByteArray = try {
